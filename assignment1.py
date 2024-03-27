@@ -129,6 +129,29 @@ def delete_universal_quantifiers(expression):
         idx = expression.find('∃')
 
     return expression
+def to_clauses(expression):
+    if expression[0] == '(' and expression[-1] == ')':
+        expression = expression[1:-1]
+    clauses = [expression.split("∧")]
+    return clauses
+
+def distribute_disjunction(expression):
+    parts = expression.split("∨")
+    cnf_expression = ""
+    for part in parts:
+        cnf_part = ""
+        conjunctions = part.split("∧")
+        for i in range(len(conjunctions)):
+            conjunctions[i] = conjunctions[i].strip()
+            if cnf_part == "":
+                cnf_part = conjunctions[i]
+            else:
+                cnf_part = "(" + cnf_part + " ∧ " + conjunctions[i] + ")"
+        if cnf_expression == "":
+            cnf_expression = cnf_part
+        else:
+            cnf_expression = "(" + cnf_expression + " ∨ " + cnf_part + ")"
+    return cnf_expression
 
 
 expression = "∀x∀y(p(x) ∧ ~r(y)) ⇒  ∃xq(x)"
@@ -147,3 +170,9 @@ expression = skolemization(expression)
 print("Step 6(Skolemization)\n:", expression)
 expression = delete_universal_quantifiers(expression)
 print("Step 7(Eliminate universal quantifiers)\n:", expression)
+expression = distribute_disjunction(expression)
+print("Step 8(Convert to conjunctive normal form):\n", expression)
+expression = to_clauses(expression)
+print("Step 9 (Turn conjunctions into clauses in a set):\n", expression)
+#expression = rename_variables_in_cnf(expression)
+print("Step 10(Rename variables in clauses):\n", expression)
