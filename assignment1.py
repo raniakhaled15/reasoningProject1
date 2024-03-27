@@ -10,14 +10,13 @@ def eliminate_implication(expression):
             quantifiers += expression[i] + expression[i + 1]
             skip = True
         else:
-            new_expression += expression[i]
-    idx = new_expression.find("⇒ ")
-    while idx != -1:
-        str1 = quantifiers + "~("
-        str1 += new_expression[:idx]
-        str2 = new_expression[idx + 1:]
-        new_expression = str1 + '∨' + str2
-        idx = new_expression.find("⇒ ")
+            new_expression = expression[i:]
+            break
+    parts = new_expression.split("⇒ ")
+    str1 = parts[0].strip()
+    str2 = parts[1].strip()
+    new_expression = quantifiers + "(~" + str1 + ') ∨ (' + str2 + ')'
+
     return new_expression
 
 
@@ -63,23 +62,88 @@ def remove_double_negation(expression):
     return new_expression
 
 
-def delete_universal_quantifiers(expression):
-    expression = expression.replace("∀x", "")
-    expression = expression.replace("∀y", "")
-    expression = expression.replace("∀z", "")
-    expression = expression.replace("∃x", "")
-    expression = expression.replace("∃y", "")
-    expression = expression.replace("∃z", "")
+def replace_vars(idx, expression, new_variable):
+    variable = expression[idx]
+    new_expression = expression[idx:]
+    expression = expression[0:idx]
+    return expression + new_expression.replace(variable, new_variable)
+
+
+
+def standrdize_variable_scope(expression):
+    new_variables = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k']
+    variables = []
+    counter = 0
+    i = 0
+    while i < len(expression):
+        if(expression[i] == '∃' or expression[i] == '∀') and (expression[i+1] in variables) == 1:
+            while new_variables[counter] in variables:
+                counter += 1
+            expression = replace_vars(i+1, expression, new_variables[counter])
+        elif (expression[i] == '∃' or expression[i] == '∀') and (expression[i + 1] in variables) != 1:
+            variables.append(expression[i+1])
+        i += 1
     return expression
 
 
-expression = "∀x∀y(p(x) ∧ ~r(y)) ⇒  ∃zq(z)"
+def prenex_form(expression):
+    quantifiers = ""
+    new_expression = ""
+    skip = False
+    for i in range(len(expression)):
+        if skip:
+            skip = False
+            continue
+        if expression[i] == '∃' or expression[i] == '∀':
+            quantifiers += expression[i] + expression[i + 1]
+            skip = True
+        else:
+            new_expression += expression[i]
+    return quantifiers + new_expression
+
+
+def skolemization(expression):
+    if expression.find('∃') == -1:
+        return expression
+    i = 0
+    count =1
+    while i < len(expression):
+        if expression[i] == '∃':
+            expression = expression.replace(expression[i+1], "f"+str(count)+"(x)")
+            count += 1
+        i += 1
+    return expression
+
+
+def delete_universal_quantifiers(expression):
+    idx = expression.find('∀')
+    while idx != -1:
+        expression = expression[:idx] + expression[idx+2:]
+        idx = expression.find('∀')
+    idx = expression.find('∃')
+    while idx != -1:
+        if expression[idx+1] == 'f':
+            expression = expression[:idx] + expression[idx + 6:]
+        else:
+            expression = expression[:idx] + expression[idx + 2:]
+        idx = expression.find('∃')
+
+    return expression
+
+
+expression = "∀x∀y(p(x) ∧ ~r(y)) ⇒  ∃xq(x)"
 print("Original expression:", expression)
 expression = eliminate_implication(expression)
-print("Step 1 and 5(Eliminate implication):\n", expression)
+print("Step 1(Eliminate implication):\n", expression)
 expression = move_negation_inward(expression)
 print("Step 2(Move negation inward (Demorgan Law))\n:", expression)
 expression = remove_double_negation(expression)
 print("Step 3(Remove double-not)\n:", expression)
+expression = standrdize_variable_scope(expression)
+print("Step 4(Standardize variable scope.)\n:", expression)
+expression = prenex_form(expression)
+print("Step 5(prenex form)\n:", expression)
+expression = skolemization(expression)
+print("Step 6(Skolemization)\n:", expression)
 expression = delete_universal_quantifiers(expression)
 print("Step 7(Eliminate universal quantifiers)\n:", expression)
