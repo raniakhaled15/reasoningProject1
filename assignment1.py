@@ -154,7 +154,31 @@ def distribute_disjunction(expression):
     return cnf_expression
 
 
-expression = "∀x∀y(p(x) ∧ ~r(y)) ⇒  ∃xq(x)"
+def resolve(clause_a, clause_b):
+
+    resolvents = []
+    for literal_a in clause_a:
+        for literal_b in clause_b:
+            if literal_a == '~' + literal_b or literal_b == '~' + literal_a:
+                resolvents.append(list(set(clause_a + clause_b) - {literal_a, literal_b}))
+    return resolvents
+
+
+def resolution(clauses):
+    while True:
+        new_clause = []
+        pairs = [(clauses[i], clauses[j]) for i in range(len(clauses)) for j in range(i+1, len(clauses))]
+        for (clause_a, clause_b) in pairs:
+            resolvents = resolve(clause_a, clause_b)
+            if [] in resolvents:
+                return "Inconsistent"
+            new_clause.extend(resolvents)
+        if not new_clause:
+            return "Consistent"
+        clauses += new_clause
+
+
+expression = "∀x∀y(p(x) ∨ ~r(y)) ⇒  ∃xq(x)"
 print("Original expression:", expression)
 expression = eliminate_implication(expression)
 print("Step 1(Eliminate implication):\n", expression)
@@ -174,5 +198,5 @@ expression = distribute_disjunction(expression)
 print("Step 8(Convert to conjunctive normal form):\n", expression)
 expression = to_clauses(expression)
 print("Step 9 (Turn conjunctions into clauses in a set):\n", expression)
-#expression = rename_variables_in_cnf(expression)
-print("Step 10(Rename variables in clauses):\n", expression)
+consistency = resolution(expression)
+print("Step 10(Consistency check using resolution):\n", consistency)
